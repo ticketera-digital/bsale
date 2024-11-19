@@ -4,6 +4,8 @@ namespace ticketeradigital\bsale\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
@@ -46,13 +48,20 @@ class BsaleStock extends Model implements WebhookHandlerInterface
 
     public static function upsertMany(array $items): void
     {
-        foreach ($items as $item) {
-            $stock = self::firstOrNew([
-                'internal_id' => $item['id'],
-            ]);
-            $stock->data = $item;
-            $stock->save();
-        }
+        $stocks = self::whereIn('internal_id', array_column($items, 'id'))->get();
+        DB::transaction(function () use ($stocks, $items) {
+            foreach ($items as $item) {
+                $stock = $stocks->firstWhere('internal_id', $item['id']);
+                if ($stock) {
+                    $difference = array_diff(Arr::dot($item), Arr::dot($stock->data));
+                    $stock->data = $difference ? $item : $stock->data;
+                } else {
+                    $stock = self::make(['data' => $item]);
+                }
+                $stock->dispatchesEvents = [];
+                $stock->save();
+            }
+        });
     }
 
     /**
@@ -66,7 +75,7 @@ class BsaleStock extends Model implements WebhookHandlerInterface
     public static function fetchForVariant(BsaleVariant|string|int $variant): void
     {
         $variantId = $variant instanceof BsaleVariant ? $variant->internal_id : $variant;
-        self::fetchAll(['variantId' => $variantId]);
+        self::fetchAll(['variantid' => $variantId]);
     }
 
     public static function fetchOne($id): self

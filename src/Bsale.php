@@ -24,6 +24,7 @@ class Bsale
         $url = $baseUrl.$endpoint;
         if ($method === 'GET') {
             $response = $client->get($url, $params);
+            Log::debug("Fetching Bsale $url", [$params]);
         } elseif ($method === 'POST') {
             $response = $client->post($url, $params);
         } else {

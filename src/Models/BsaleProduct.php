@@ -5,6 +5,7 @@ namespace ticketeradigital\bsale\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
 use ticketeradigital\bsale\Events\ProductUpdated;
@@ -40,8 +41,10 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
     {
         $id = $this->internal_id;
         $response = Bsale::makeRequest("/v1/products/$id.json");
-        $this->data = $response;
-        $this->save();
+        $difference = array_diff(Arr::dot($this->data), Arr::dot($response));
+        if ($difference) {
+            $this->update(['data' => $response]);
+        }
 
         return $response;
     }
@@ -52,7 +55,9 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
             $product = self::firstOrNew([
                 'internal_id' => $item['id'],
             ]);
-            $product->data = $item;
+            $difference = array_diff(Arr::dot($item), Arr::dot($product->data ?? []));
+            $product->data = $difference ? $item : $product->data;
+            $product->dispatchesEvents = [];
             $product->save();
         }
     }
@@ -88,9 +93,6 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
     public static function handleWebhook(ResourceUpdated $resource): void
     {
         $product = self::fetchOne($resource->resourceId);
-        if (! $product->variants->count()) {
-            BsaleVariant::fetchForProduct($product);
-        }
 
         info('BsaleProducts updated/created', ['id' => $product->id]);
     }

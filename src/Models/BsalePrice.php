@@ -4,7 +4,9 @@ namespace ticketeradigital\bsale\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
 use ticketeradigital\bsale\Events\PriceUpdated;
@@ -37,22 +39,36 @@ class BsalePrice extends Model implements WebhookHandlerInterface
         $id = $this->internal_id;
         $list = $this->price_list_id;
         $response = Bsale::makeRequest("/v1/price_lists/$list/details/$id.json");
-        $this->data = $response;
-        $this->save();
+        $difference = array_diff(Arr::dot($this->data), Arr::dot($response));
+        if ($difference) {
+            $this->update(['data' => $response]);
+        }
 
         return $response;
     }
 
+    /**
+     * @throws \Throwable
+     */
     public static function upsertMany(array $items, $priceListId): void
     {
-        foreach ($items as $item) {
-            $price = self::firstOrNew([
-                'internal_id' => $item['id'],
-            ], ['data' => $item, 'price_list_id' => $priceListId]);
-            $price->data = $item;
-            $price->price_list_id = $priceListId;
-            $price->save();
-        }
+        $prices = self::whereIn('internal_id', array_column($items, 'id'))
+            ->where('price_list_id', $priceListId)
+            ->get();
+        DB::transaction(function () use ($prices, $items, $priceListId) {
+            foreach ($items as $item) {
+                $price = $prices->firstWhere('internal_id', $item['id']);
+                if ($price) {
+                    $difference = array_diff(Arr::dot($item), Arr::dot($price->data));
+                    $price->data = $difference ? $item : $price->data;
+                    $price->price_list_id = $priceListId;
+                } else {
+                    $price = self::make(['data' => $item, 'price_list_id' => $priceListId]);
+                }
+                $price->dispatchesEvents = [];
+                $price->save();
+            }
+        });
     }
 
     /**
@@ -94,7 +110,7 @@ class BsalePrice extends Model implements WebhookHandlerInterface
     public static function fetchForVariant(string|int $priceListId, BsaleVariant|string|int $variant): void
     {
         $variantId = $variant instanceof BsaleVariant ? $variant->internal_id : $variant;
-        self::fetchPriceList($priceListId, ['variantId' => $variantId]);
+        self::fetchPriceList($priceListId, ['variantid' => $variantId]);
     }
 
     public static function handleWebhook(ResourceUpdated $resource): void

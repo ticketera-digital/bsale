@@ -4,6 +4,7 @@ namespace ticketeradigital\bsale\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
 
@@ -35,11 +36,12 @@ class BsaleProductType extends Model
     public static function upsertMany(array $items): void
     {
         foreach ($items as $item) {
-            $product = self::firstOrNew([
+            $productType = self::firstOrNew([
                 'internal_id' => $item['id'],
             ]);
-            $product->data = $item;
-            $product->save();
+            $difference = array_diff(Arr::dot($item), Arr::dot($productType->data));
+            $productType->data = $difference ? $item : $productType->data;
+            $productType->saveQuietly();
         }
     }
 

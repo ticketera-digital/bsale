@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Arr;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
 use ticketeradigital\bsale\Events\ResourceUpdated;
@@ -87,8 +88,10 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
     {
         $id = $this->internal_id;
         $response = Bsale::makeRequest("/v1/variants/$id.json");
-        $this->data = $response;
-        $this->save();
+        $difference = array_diff(Arr::dot($this->data), Arr::dot($response));
+        if ($difference) {
+            $this->update(['data' => $response]);
+        }
 
         return $response;
     }
@@ -100,6 +103,7 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
                 'internal_id' => $item['id'],
             ]);
             $variant->data = $item;
+            $variant->dispatchesEvents = [];
             $variant->save();
         }
     }

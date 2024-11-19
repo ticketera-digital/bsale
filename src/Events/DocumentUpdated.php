@@ -17,6 +17,6 @@ class DocumentUpdated
      */
     public function __construct(public BsaleDocument $document)
     {
-        Log::debug('BsaleDocument updated', ['id' => $this->document->id]);
+        Log::debug('BsaleDocument updated (event)', ['id' => $this->document->id]);
     }
 }

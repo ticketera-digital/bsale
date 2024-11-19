@@ -17,6 +17,6 @@ class ProductUpdated
      */
     public function __construct(public BsaleProduct $product)
     {
-        Log::debug('BsaleProduct updated', ['id' => $this->product->id]);
+        Log::debug('BsaleProduct updated (event)', ['id' => $this->product->id]);
     }
 }

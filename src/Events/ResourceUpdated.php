@@ -17,6 +17,6 @@ class ResourceUpdated
         public string $link,
         public array $others
     ) {
-        Log::debug('Bsale resource updated (listener)', ['topic' => $this->topic, 'resourceId' => $this->resourceId]);
+        Log::debug('Bsale resource updated', ['topic' => $this->topic, 'resourceId' => $this->resourceId]);
     }
 }
