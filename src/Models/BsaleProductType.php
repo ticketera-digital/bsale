@@ -41,7 +41,8 @@ class BsaleProductType extends Model
             ]);
             $difference = array_diff(Arr::dot($item), Arr::dot($productType->data));
             $productType->data = $difference ? $item : $productType->data;
-            $productType->saveQuietly();
+            $productType->dispatchesEvents = [];
+            $productType->save();
         }
     }
 

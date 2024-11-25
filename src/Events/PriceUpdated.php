@@ -17,6 +17,6 @@ class PriceUpdated
      */
     public function __construct(public BsalePrice $price)
     {
-        Log::debug('BsalePrice updated (event)', ['id' => $this->price->id]);
+        Log::debug('Bsale PriceUpdated updated (observer)', ['id' => $this->price->id]);
     }
 }

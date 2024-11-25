@@ -6,7 +6,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class ResourceUpdated
+class WebhookHit
 {
     use Dispatchable, SerializesModels;
 
@@ -17,6 +17,6 @@ class ResourceUpdated
         public string $link,
         public array $others
     ) {
-        Log::debug('Bsale resource updated', ['topic' => $this->topic, 'resourceId' => $this->resourceId]);
+        Log::debug('Bsale WebhookHit event', ['topic' => $this->topic, 'resourceId' => $this->resourceId]);
     }
 }

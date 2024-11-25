@@ -5,9 +5,9 @@ namespace ticketeradigital\bsale\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use ticketeradigital\bsale\Events\ResourceUpdated;
+use ticketeradigital\bsale\Events\WebhookHit;
 
-class WebHook extends Controller
+class WebHookController extends Controller
 {
     public function __invoke(Request $request)
     {
@@ -20,7 +20,7 @@ class WebHook extends Controller
             'send' => 'nullable|numeric',
         ]);
 
-        Log::debug('Webhook received', $request->only(['topic', 'resourceId']));
+        Log::debug('Bsale WebhookController hit', $request->only(['topic', 'resourceId']));
 
         if ($validator->fails()) {
             Log::critical('Webhook validation failed', $request->all());
@@ -31,7 +31,7 @@ class WebHook extends Controller
         $others = $request->except(['action', 'topic', 'resourceId', 'resource']);
 
         $webHooksEnabled = config('bsale.enableWebHooks');
-        ResourceUpdated::dispatchIf(
+        WebhookHit::dispatchIf(
             $webHooksEnabled,
             $request->action,
             $request->topic,

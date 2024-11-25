@@ -3,7 +3,7 @@
 namespace ticketeradigital\bsale\Listeners;
 
 use Illuminate\Support\Facades\Log;
-use ticketeradigital\bsale\Events\ResourceUpdated;
+use ticketeradigital\bsale\Events\WebhookHit;
 use ticketeradigital\bsale\Models\BsaleDocument;
 use ticketeradigital\bsale\Models\BsalePrice;
 use ticketeradigital\bsale\Models\BsaleProduct;
@@ -33,10 +33,10 @@ class UpdateResource
     /**
      * @throws \Throwable
      */
-    public function handle(ResourceUpdated $resource)
+    public function handle(WebhookHit $resource)
     {
         $handler = self::getWebhookHandler($resource->topic);
-        Log::debug('Updating Bsale resource (listener)', ['resource' => $handler]);
+        Log::debug('UpdateResource (WebhookHit listener)', ['resource' => $handler]);
         $handler::handleWebHook($resource);
     }
 }

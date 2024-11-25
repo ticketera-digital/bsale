@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
-use ticketeradigital\bsale\Events\ResourceUpdated;
+use ticketeradigital\bsale\Entities\Offices;
 use ticketeradigital\bsale\Events\StockUpdated;
+use ticketeradigital\bsale\Events\WebhookHit;
 use ticketeradigital\bsale\Interfaces\WebhookHandlerInterface;
 
 class BsaleStock extends Model implements WebhookHandlerInterface
@@ -91,9 +92,20 @@ class BsaleStock extends Model implements WebhookHandlerInterface
     /**
      * @throws Throwable
      */
-    public static function handleWebhook(ResourceUpdated $resource): void
+    public static function handleWebhook(WebhookHit $resource): void
     {
-        self::fetchForVariant($resource->resourceId);
-        info('BsaleStock updated/created', ['variantId' => $resource->resourceId]);
+        $response = Bsale::makeRequest('/v1/stocks.json', [
+            'variantid' => $resource->resourceId,
+            'officeid' => $resource->others['officeId'],
+        ]);
+        $data = $response['items'][0];
+        self::updateOrCreate(['internal_id' => $data['id']], [
+            'data' => $data,
+        ]);
+    }
+
+    public function getOfficeAttribute(): ?array
+    {
+        return Offices::find((int) data_get($this->data, 'office.id', 0));
     }
 }

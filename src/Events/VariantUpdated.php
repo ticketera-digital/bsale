@@ -17,6 +17,6 @@ class VariantUpdated
      */
     public function __construct(public BsaleVariant $variant)
     {
-        Log::debug('BsaleVariant updated (event)', ['id' => $this->variant->id]);
+        Log::debug('Bsale VariantUpdated updated (observer)', ['id' => $this->variant->id]);
     }
 }

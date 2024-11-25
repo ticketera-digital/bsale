@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
 use ticketeradigital\bsale\Events\ProductUpdated;
-use ticketeradigital\bsale\Events\ResourceUpdated;
+use ticketeradigital\bsale\Events\WebhookHit;
 use ticketeradigital\bsale\Interfaces\WebhookHandlerInterface;
 
 class BsaleProduct extends Model implements WebhookHandlerInterface
@@ -51,15 +52,20 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
 
     public static function upsertMany(array $items): void
     {
-        foreach ($items as $item) {
-            $product = self::firstOrNew([
-                'internal_id' => $item['id'],
-            ]);
-            $difference = array_diff(Arr::dot($item), Arr::dot($product->data ?? []));
-            $product->data = $difference ? $item : $product->data;
-            $product->dispatchesEvents = [];
-            $product->save();
-        }
+        $product = self::whereIn('internal_id', array_column($items, 'id'))->get();
+        DB::transaction(function () use ($product, $items) {
+            foreach ($items as $item) {
+                $price = $product->firstWhere('internal_id', $item['id']);
+                if ($price) {
+                    $difference = array_diff(Arr::dot($item), Arr::dot($price->data));
+                    $price->data = $difference ? $item : $price->data;
+                } else {
+                    $price = self::make(['data' => $item]);
+                }
+                $price->dispatchesEvents = [];
+                $price->save();
+            }
+        });
     }
 
     /**
@@ -90,10 +96,8 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
         );
     }
 
-    public static function handleWebhook(ResourceUpdated $resource): void
+    public static function handleWebhook(WebhookHit $resource): void
     {
-        $product = self::fetchOne($resource->resourceId);
-
-        info('BsaleProducts updated/created', ['id' => $product->id]);
+        self::fetchOne($resource->resourceId);
     }
 }

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\Events\DocumentUpdated;
-use ticketeradigital\bsale\Events\ResourceUpdated;
+use ticketeradigital\bsale\Events\WebhookHit;
 use ticketeradigital\bsale\Interfaces\WebhookHandlerInterface;
 
 class BsaleDocument extends Model implements WebhookHandlerInterface
@@ -55,9 +55,8 @@ class BsaleDocument extends Model implements WebhookHandlerInterface
         );
     }
 
-    public static function handleWebhook(ResourceUpdated $resource): void
+    public static function handleWebhook(WebhookHit $resource): void
     {
         $result = self::fetchOne($resource->resourceId);
-        info('BsaleDocument updated/created', ['id' => $result->id]);
     }
 }

@@ -24,12 +24,12 @@ class Bsale
         $url = $baseUrl.$endpoint;
         if ($method === 'GET') {
             $response = $client->get($url, $params);
-            Log::debug("Fetching Bsale $url", [$params]);
         } elseif ($method === 'POST') {
             $response = $client->post($url, $params);
         } else {
             throw new \Exception("Unknown request method $method.");
         }
+        Log::debug("Fetching Bsale $method: {$response->effectiveUri()}", $params);
         if ($response->failed()) {
             Log::debug('Bsale request failed', [
                 'url' => $url,

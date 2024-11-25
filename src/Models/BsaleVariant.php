@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use ticketeradigital\bsale\Bsale;
 use ticketeradigital\bsale\BsaleException;
-use ticketeradigital\bsale\Events\ResourceUpdated;
 use ticketeradigital\bsale\Events\VariantUpdated;
+use ticketeradigital\bsale\Events\WebhookHit;
 use ticketeradigital\bsale\Interfaces\WebhookHandlerInterface;
 
 class BsaleVariant extends Model implements WebhookHandlerInterface
@@ -81,7 +83,7 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
     public static function fetchForProduct(BsaleProduct|int $product)
     {
         $productId = $product instanceof BsaleProduct ? $product->internal_id : $product;
-        self::fetchAll(['productId' => $productId]);
+        self::fetchAll(['productid' => $productId]);
     }
 
     public function fetch(): array
@@ -98,14 +100,25 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
 
     public static function upsertMany(array $items): void
     {
-        foreach ($items as $item) {
-            $variant = self::firstOrNew([
-                'internal_id' => $item['id'],
-            ]);
-            $variant->data = $item;
-            $variant->dispatchesEvents = [];
-            $variant->save();
-        }
+        $variants = self::whereIn('internal_id', array_column($items, 'id'))->get();
+        DB::transaction(function () use ($variants, $items) {
+            foreach ($items as $item) {
+                $price = $variants->firstWhere('internal_id', $item['id']);
+                data_set($item, 'description', Str::of($item['description'])
+                    ->before("\n")
+                    ->trim()
+                    ->limit(252)
+                );
+                if ($price) {
+                    $difference = array_diff(Arr::dot($item), Arr::dot($price->data));
+                    $price->data = $difference ? $item : $price->data;
+                } else {
+                    $price = self::make(['data' => $item]);
+                }
+                $price->dispatchesEvents = [];
+                $price->save();
+            }
+        });
     }
 
     /**
@@ -140,9 +153,8 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
         return ! $this->data['state'];
     }
 
-    public static function handleWebhook(ResourceUpdated $resource): void
+    public static function handleWebhook(WebhookHit $resource): void
     {
         self::fetchOne($resource->resourceId);
-        info('BsaleVariant updated/created', ['variantId' => $resource->resourceId]);
     }
 }
