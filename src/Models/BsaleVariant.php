@@ -19,10 +19,12 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
 {
     protected $fillable = [
         'data',
+        'costs',
     ];
 
     protected $casts = [
         'data' => 'array',
+        'costs' => 'array',
     ];
 
     protected $dispatchesEvents = [
@@ -96,6 +98,15 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
         }
 
         return $response;
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function fetchCosts(): void
+    {
+        $response = Bsale::makeRequest("/v1/variants/$this->internal_id/costs.json");
+        $this->update(['costs' => $response]);
     }
 
     public static function upsertMany(array $items): void
