@@ -2,13 +2,15 @@
 
 namespace ticketeradigital\bsale\tests\Unit;
 
+use Orchestra\Testbench\TestCase;
 use ticketeradigital\bsale\Bsale;
+use ticketeradigital\bsale\BsaleServiceProvider;
 
-class BsaleTest extends \Orchestra\Testbench\TestCase
+class BsaleTest extends TestCase
 {
     protected function getPackageProviders($app): array
     {
-        return [\ticketeradigital\bsale\BsaleServiceProvider::class];
+        return [BsaleServiceProvider::class];
     }
 
     protected function getEnvironmentSetUp($app)
