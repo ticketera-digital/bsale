@@ -5,6 +5,7 @@ namespace ticketeradigital\bsale\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use ticketeradigital\bsale\Bsale;
+use ticketeradigital\bsale\BsaleException;
 use ticketeradigital\bsale\Events\DocumentUpdated;
 use ticketeradigital\bsale\Events\WebhookHit;
 use ticketeradigital\bsale\Interfaces\WebhookHandlerInterface;
@@ -39,9 +40,13 @@ class BsaleDocument extends Model implements WebhookHandlerInterface
         return $this->hasMany(BsaleShipping::class, 'guide_id', 'document_id');
     }
 
+    /**
+     * @throws BsaleException
+     */
     public function fetchDetails(): void
     {
-        BsaleDetail::fetchDocumentDetails($this->document_id);
+        $documentId = $this->document_id ?? data_get($this->data, 'id');
+        BsaleDetail::fetchDocumentDetails($documentId);
         $this->load('details');
     }
 
