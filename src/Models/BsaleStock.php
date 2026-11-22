@@ -54,7 +54,7 @@ class BsaleStock extends Model implements WebhookHandlerInterface
             foreach ($items as $item) {
                 $stock = $stocks->firstWhere('internal_id', $item['id']);
                 if ($stock) {
-                    $difference = array_diff(Arr::dot($item), Arr::dot($stock->data));
+                    $difference = array_diff_assoc(Arr::dot($item), Arr::dot($stock->data));
                     $stock->data = $difference ? $item : $stock->data;
                 } else {
                     $stock = self::make(['data' => $item]);

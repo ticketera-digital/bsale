@@ -39,7 +39,7 @@ class BsaleProductType extends Model
             $productType = self::firstOrNew([
                 'internal_id' => $item['id'],
             ]);
-            $difference = array_diff(Arr::dot($item), Arr::dot($productType->data));
+            $difference = array_diff_assoc(Arr::dot($item), Arr::dot($productType->data));
             $productType->data = $difference ? $item : $productType->data;
             $productType->dispatchesEvents = [];
             $productType->save();

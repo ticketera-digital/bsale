@@ -40,7 +40,7 @@ class BsalePrice extends Model implements WebhookHandlerInterface
         $id = $this->internal_id;
         $list = $this->price_list_id;
         $response = Bsale::makeRequest("/v1/price_lists/$list/details/$id.json");
-        $difference = array_diff(Arr::dot($this->data), Arr::dot($response));
+        $difference = array_diff_assoc(Arr::dot($this->data), Arr::dot($response));
         if ($difference) {
             $this->update(['data' => $response]);
         }
@@ -60,7 +60,7 @@ class BsalePrice extends Model implements WebhookHandlerInterface
             foreach ($items as $item) {
                 $price = $prices->firstWhere('internal_id', $item['id']);
                 if ($price) {
-                    $difference = array_diff(Arr::dot($item), Arr::dot($price->data));
+                    $difference = array_diff_assoc(Arr::dot($item), Arr::dot($price->data));
                     $price->data = $difference ? $item : $price->data;
                     $price->price_list_id = $priceListId;
                 } else {
