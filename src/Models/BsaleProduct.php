@@ -42,7 +42,7 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
     {
         $id = $this->internal_id;
         $response = Bsale::makeRequest("/v1/products/$id.json");
-        $difference = array_diff(Arr::dot($this->data), Arr::dot($response));
+        $difference = array_diff_assoc(Arr::dot($this->data), Arr::dot($response));
         if ($difference) {
             $this->update(['data' => $response]);
         }
@@ -57,7 +57,7 @@ class BsaleProduct extends Model implements WebhookHandlerInterface
             foreach ($items as $item) {
                 $price = $product->firstWhere('internal_id', $item['id']);
                 if ($price) {
-                    $difference = array_diff(Arr::dot($item), Arr::dot($price->data));
+                    $difference = array_diff_assoc(Arr::dot($item), Arr::dot($price->data));
                     $price->data = $difference ? $item : $price->data;
                 } else {
                     $price = self::make(['data' => $item]);
