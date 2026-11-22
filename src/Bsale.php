@@ -20,7 +20,9 @@ class Bsale
         throw_if(! $baseUrl, \Exception::class, 'Config base_url not set.');
         $client = Http::withHeaders([
             'access_token' => $accessToken,
-        ]);
+        ])
+            ->withOptions(['connect_timeout' => (int) config('bsale.connect_timeout', 5)])
+            ->timeout((int) config('bsale.timeout', 20));
         $url = $baseUrl.$endpoint;
         if ($method === 'GET') {
             $response = $client->get($url, $params);
@@ -31,9 +33,11 @@ class Bsale
         }
         Log::debug("Fetching Bsale $method: {$response->effectiveUri()}", $params);
         if ($response->failed()) {
-            Log::debug('Bsale request failed', [
+            Log::warning('Bsale request failed', [
                 'url' => $url,
                 'method' => $method,
+                'status' => $response->status(),
+                'body' => $response->body(),
                 'params' => $params,
             ]);
             throw new BsaleException($response);
@@ -42,37 +46,31 @@ class Bsale
         return $response->json();
     }
 
+    /**
+     * @throws Throwable
+     */
     public static function createDocument($document): BsaleDocument
     {
-        try {
-            $response = self::makeRequest('/v1/documents.json', $document, 'POST');
-        } catch (BsaleException $e) {
-            throw $e;
-        } catch (Throwable $e) {
-            exit($e->getMessage());
-        }
+        $response = self::makeRequest('/v1/documents.json', $document, 'POST');
 
         return BsaleDocument::create([
             'data' => $response,
         ]);
     }
 
+    /**
+     * @throws Throwable
+     */
     public static function fetchAllAndCallback(string $endpoint, callable $callback, mixed $callbackArgs = null, array $endPointParams = []): void
     {
-        try {
-            $limit = 50;
-            $offset = 0;
-            do {
-                $params = compact('limit', 'offset') + $endPointParams;
-                $response = self::makeRequest($endpoint, $params);
-                $count = $response['count'];
-                $offset = $offset + $limit;
-                call_user_func($callback, $response['items'] ?? [], $callbackArgs);
-            } while ($offset < ($count + $limit));
-        } catch (BsaleException $e) {
-            throw $e;
-        } catch (Throwable $e) {
-            exit($e->getMessage());
-        }
+        $limit = 50;
+        $offset = 0;
+        do {
+            $params = compact('limit', 'offset') + $endPointParams;
+            $response = self::makeRequest($endpoint, $params);
+            $count = $response['count'];
+            $offset = $offset + $limit;
+            call_user_func($callback, $response['items'] ?? [], $callbackArgs);
+        } while ($offset < ($count + $limit));
     }
 }
