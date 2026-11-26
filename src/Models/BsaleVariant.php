@@ -92,7 +92,7 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
     {
         $id = $this->internal_id;
         $response = Bsale::makeRequest("/v1/variants/$id.json");
-        $difference = array_diff(Arr::dot($this->data), Arr::dot($response));
+        $difference = array_diff_assoc(Arr::dot($this->data), Arr::dot($response));
         if ($difference) {
             $this->update(['data' => $response]);
         }
@@ -121,7 +121,7 @@ class BsaleVariant extends Model implements WebhookHandlerInterface
                     ->limit(252)
                 );
                 if ($price) {
-                    $difference = array_diff(Arr::dot($item), Arr::dot($price->data));
+                    $difference = array_diff_assoc(Arr::dot($item), Arr::dot($price->data));
                     $price->data = $difference ? $item : $price->data;
                 } else {
                     $price = self::make(['data' => $item]);
